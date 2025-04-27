@@ -25,19 +25,33 @@ class User(db.Model):
     name = db.Column(db.String(100))
     email = db.Column(db.String(70), unique=True)
     password = db.Column(db.String(80))
+    role = db.Column(db.String(20), default='customer')  # Added role column
     def to_json(self):
         return {
             "id":self.id,
             "name":self.name,
             "email":self.email,
-            "hello":"hello"
+            "role": self.role
         }
     
 class Books(db.Model):
     b_id = db.Column(db.Integer, primary_key=True)
     b_name = db.Column(db.String(100))
     b_auth = db.Column(db.String(100))
+    b_isbn = db.Column(db.String(20), unique=True)
+    b_pub_year = db.Column(db.Integer)
     b_check = db.Column(db.Boolean)
+
+    def to_json(self):
+        return {
+            "b_id": self.b_id,
+            "b_name": self.b_name,
+            "b_auth": self.b_auth,
+            "b_isbn": self.b_isbn,
+            "b_pub_year": self.b_pub_year,
+            "b_check": self.b_check
+        }
+
 
 with app.app_context():
     db.create_all()
@@ -85,7 +99,7 @@ def login():
             if isinstance(access_token, bytes):
                 access_token = access_token.decode('utf-8')
 
-            response = make_response(redirect(url_for('dashboard')))
+            response = make_response(redirect(url_for('dashboard' if user.role == 'customer' else 'admin_dashboard')))
             response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax')
             return response
         else:
@@ -102,6 +116,7 @@ def register():
         name = data.get('name')
         email = data.get('email')
         _pass = data.get('password')
+        role = data.get('role')
 
         # Check if user already exists by email
         user = User.query.filter_by(email=email).first()
@@ -109,7 +124,7 @@ def register():
         if user:
             return {"message": "User already exists, please log in!"}
 
-        new_user = User(name=name, email=email, password=_pass)  # Store password as is
+        new_user = User(name=name, email=email, password=_pass, role=role)  # Store password as is
         db.session.add(new_user)
         db.session.commit()
 
@@ -135,50 +150,75 @@ def dashboard(current_user:User):
 
     
 #admin section
-@app.route('/addbook',methods=['POST'])
+
+@app.route('/admin_dashboard')
+@token_required
+def admin_dashboard(current_user: User):
+    books =Books.query.all()
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard')) 
+    return render_template('admin_dashboard.html',books=books) 
+
+
+@app.route('/addbook', methods=['POST'])
 @token_required
 def add_book(current_user):
-    if request.method=="POST":
-        data=request.get_json()
-        b_name=data['b_name']
-        b_auth=data['b_auth']
-        print(b_auth)
-        exists_book=Books.query.filter_by(b_name=b_name).first()
-        if exists_book:
-            return {"message":"Book is Already Present!"}
-        new_book=Books(b_name=b_name,b_auth=b_auth,b_check=True)
-        db.session.add(new_book)
-        db.session.commit()   
-        return {"message":"A New Book Added SuccesFully!"}
-    return {"message":"somthing goes worng!"}
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard')) 
+    
+    b_name = request.form.get('b_name')
+    b_auth = request.form.get('b_auth')
+    b_isbn = request.form.get('b_isbn')
+    b_pub_year = request.form.get('b_pub_year')
 
-@app.route('/deletebook/<int:b_id>',methods=['DELETE'])
-@token_required
-def deletebook(current_user,b_id):
-    book = Books.query.filter_by(b_id=b_id).first()
-    if book:
-        db.session.delete(book)
-        db.session.commit()
-        return {"message": "The Book has been deleted successfully!"}
-    else:
-        return {"message": "Book not found!"}, 404
+   
+    existing_book = Books.query.filter_by(b_isbn=b_isbn).first()
+    if existing_book:
+        return jsonify({"message": "Book with this ISBN already exists!"}), 400
 
-
-@app.route('/updatebook/<int:b_id>',methods=['POST'])
-@token_required
-def updatebook(current_user,b_id):
-    data = request.get_json()
-    b_name=data['b_name']
-    b_auth=data['b_auth']
-    b_check=data['b_check'].lower() == 'true'
-    book=Books.query.filter_by(b_id=b_id).first()
-    if not book:
-        return {"message": "Book not found!"}, 404
-    book.b_name=b_name
-    book.b_auth=b_auth
-    book.b_check=b_check
+   
+    new_book = Books(b_name=b_name, b_auth=b_auth, b_isbn=b_isbn, b_pub_year=b_pub_year, b_check=True)
+    db.session.add(new_book)
     db.session.commit()
-    return {"message":"Book changes are saved !"}
+
+    return redirect(url_for('admin_dashboard'))  
+
+
+@app.route('/deletebook/<int:b_id>',methods=['POST'])
+@token_required
+def delete_book(current_user,b_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    book = Books.query.filter_by(b_id=b_id).first()
+    if not book:
+        return jsonify({"message": "Book not found!"}), 404
+    db.session.delete(book)
+    db.session.commit()
+    return redirect(url_for('admin_dashboard')) 
+
+
+@app.route('/updatebook/<int:b_id>', methods=['GET', 'POST'])
+@token_required
+def update_book(current_user, b_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+
+    book = Books.query.filter_by(b_id=b_id).first()
+    if not book:
+        return jsonify({"message": "Book not found!"}), 404
+    
+    if request.method == 'POST':
+      
+        book.b_name = request.form.get('b_name')
+        book.b_auth = request.form.get('b_auth')
+        book.b_isbn = request.form.get('b_isbn')
+        book.b_pub_year = request.form.get('b_pub_year')
+
+        db.session.commit()
+        return redirect(url_for('admin_dashboard'))  
+
+    return render_template('update.html', book=book)
+
 
 @app.route('/')
 def ho():

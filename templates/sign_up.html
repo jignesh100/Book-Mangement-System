@@ -19,9 +19,18 @@
       <label for="exampleInputPassword1" class="form-label">Enter The Password</label>
       <input type="password" name="password" class="form-control" required>
     </div>
+    <label for="role" class="form-label">Select Role</label>
+      <select name="role" class="form-control" required>
+        <option value="customer">Customer</option>
+        <option value="admin">Admin</option>
+      </select>
+      
+      
+      <button type="submit" class="btn btn-success mx-1 my-3" >Sign Up</button>
+      <a href="{{ url_for('login') }}" class="btn btn-link mx-1 my-3" >Already have an account? Sign In</a> 
+      
   </div>
   
-  <button type="submit" class="btn btn-success mx-1">Sign Up</button>
-  <a href="{{ url_for('login') }}" class="btn btn-link mx-1">Already have an account? Sign In</a> 
+  
 </form>
 {% endblock %}

@@ -1,33 +1,82 @@
 {% extends 'base.html' %}
+
 {% block title %}
-    Dashboard
+  Admin Dashboard
 {% endblock title %}
 
 {% block content %}
-    <h1>Welcome, {{ username }}!</h1>
-    <p>Your email: {{ email }}</p>
-    <h2>Available Books</h2>
-    <table class="table mx-4" >
+<h1 style="text-align: center;" class="my-2">Welcome to Admin Dashboard</h1>
+
+<div class="my-3 mx-3">
+<h3>Add New Book</h3>
+<form action="{{ url_for('add_book') }}" method="POST">
+    <div class="mb-3">
+        <label for="b_name" class="form-label">Book Title</label>
+        <input type="text" class="form-control" name="b_name" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="b_auth" class="form-label">Author</label>
+        <input type="text" class="form-control" name="b_auth" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="b_isbn" class="form-label">ISBN</label>
+        <input type="text" class="form-control" name="b_isbn" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="b_pub_year" class="form-label">Publication Year</label>
+        <input type="number" class="form-control" name="b_pub_year" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Add Book</button>
+</form>
+</div>
+
+    {% if books|length == 0 %}
+    <div class="alert alert-secondary" role="alert">
+        No Books Found!
+    </div>
+    {% else %}
+    <table class="table mx-4">
         <thead>
-            <th>Book ID</th>
-            <th>Book Name</th>
-            <th>Book Author</th>
-            <th>Available</th>
+            <tr>
+                <th scope="col">Sr.no</th>
+                <th scope="col">Title</th>
+                <th scope="col">Author</th>
+                <th scope="col">ISBN</th>
+                <th scope="col">Publication Year</th>
+                <th scope="col">Operations</th>
+            </tr>
         </thead>
         <tbody>
             {% for book in books %}
-                    <tr>
-                        <td>{{ book.b_id }}</td>
-                        <td>{{ book.b_name }}</td>
-                        <td>{{ book.b_auth }}</td>
-                        <td>{{ 'Yes' if book.b_check else 'No' }}</td>
-                    </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4">No books found.</td>
-                        </tr>
+            <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ book.b_name }}</td>
+                <td>{{ book.b_auth }}</td>
+                <td>{{ book.b_isbn }}</td>
+                <td>{{ book.b_pub_year }}</td>
+                <td>
+                    <a href="{{ url_for('update_book', b_id=book.b_id) }}" class="btn btn-success btn-sm mx-1">Update</a>
+                    <form action="{{ url_for('delete_book', b_id=book.b_id) }}" method="POST" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm mx-1">Delete</button>
+                  </form>
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
-    
-{% endblock content %}
+    {% endif %}
+
+
+
+
+
+
+
+
+
+
+{% endblock %}

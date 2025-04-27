@@ -7,27 +7,36 @@
     <h1>Welcome, {{ username }}!</h1>
     <p>Your email: {{ email }}</p>
     <h2>Available Books</h2>
-    <table class="table mx-4" >
+    {% if books|length == 0 %}
+    <div class="alert alert-secondary" role="alert">
+        No Books Found!
+    </div>
+    {% else %}
+    <table class="table mx-4">
         <thead>
-            <th>Book ID</th>
-            <th>Book Name</th>
-            <th>Book Author</th>
-            <th>Available</th>
+            <tr>
+                <th scope="col">Sr.no</th>
+                <th scope="col">Title</th>
+                <th scope="col">Author</th>
+                <th scope="col">ISBN</th>
+                <th scope="col">Publication Year</th>
+                <th scope="col">Availability</th>
+            </tr>
         </thead>
         <tbody>
             {% for book in books %}
-                    <tr>
-                        <td>{{ book.b_id }}</td>
-                        <td>{{ book.b_name }}</td>
-                        <td>{{ book.b_auth }}</td>
-                        <td>{{ 'Yes' if book.b_check else 'No' }}</td>
-                    </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4">No books found.</td>
-                        </tr>
+            <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ book.b_name }}</td>
+                <td>{{ book.b_auth }}</td>
+                <td>{{ book.b_isbn }}</td>
+                <td>{{ book.b_pub_year }}</td>
+                <td>{{ 'Yes' if book.b_check else 'No' }}</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% endif %}
     
 {% endblock content %}
+
