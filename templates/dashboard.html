@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}
+    Dashboard
+{% endblock title %}
+
+{% block content %}
+    <h1>Welcome, {{ username }}!</h1>
+    <p>Your email: {{ email }}</p>
+    <h2>Available Books</h2>
+    <table class="table mx-4" >
+        <thead>
+            <th>Book ID</th>
+            <th>Book Name</th>
+            <th>Book Author</th>
+            <th>Available</th>
+        </thead>
+        <tbody>
+            {% for book in books %}
+                    <tr>
+                        <td>{{ book.b_id }}</td>
+                        <td>{{ book.b_name }}</td>
+                        <td>{{ book.b_auth }}</td>
+                        <td>{{ 'Yes' if book.b_check else 'No' }}</td>
+                    </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4">No books found.</td>
+                        </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+{% endblock content %}
