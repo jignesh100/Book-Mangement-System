@@ -47,6 +47,7 @@
                 <th scope="col">Author</th>
                 <th scope="col">ISBN</th>
                 <th scope="col">Publication Year</th>
+                <th scope="col">Availability</th>
                 <th scope="col">Operations</th>
             </tr>
         </thead>
@@ -58,6 +59,7 @@
                 <td>{{ book.b_auth }}</td>
                 <td>{{ book.b_isbn }}</td>
                 <td>{{ book.b_pub_year }}</td>
+                <td>{{ 'Yes' if book.b_check else 'No' }}</td>
                 <td>
                     <a href="{{ url_for('update_book', b_id=book.b_id) }}" class="btn btn-success btn-sm mx-1">Update</a>
                     <form action="{{ url_for('delete_book', b_id=book.b_id) }}" method="POST" style="display:inline;">

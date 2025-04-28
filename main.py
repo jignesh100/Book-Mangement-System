@@ -1,6 +1,7 @@
 import datetime
 from functools import wraps
 from os import name
+from tabnanny import check
 from urllib import response
 import uuid
 from flask import Flask, jsonify, make_response, redirect,request,render_template, session, url_for
@@ -213,7 +214,13 @@ def update_book(current_user, b_id):
         book.b_auth = request.form.get('b_auth')
         book.b_isbn = request.form.get('b_isbn')
         book.b_pub_year = request.form.get('b_pub_year')
-
+        data = request.form
+        check = data.get('availability')
+        if check=="YES":
+            book.b_check=True
+        elif check=="NO":
+            book.b_check=False
+        print(book.b_check)
         db.session.commit()
         return redirect(url_for('admin_dashboard'))  
 
