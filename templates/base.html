@@ -24,13 +24,9 @@
                 <a class="nav-link active" aria-current="About Us" href="{{ url_for('about') }}">About Us</a>
               </li>
             </ul>
-            <ul class="navbar-nav" style="margin-left:auto;">
-              <li class="nav-item">
-                <form action="{{ url_for('signout') }}" method="post">
-                  <button type="submit" class="btn btn-outline-danger">Sign Out</button>
-                </form>
-              </li>
-            </ul>
+            {% block button %}
+
+            {% endblock button %}
           </div>
         </div>
       </nav>

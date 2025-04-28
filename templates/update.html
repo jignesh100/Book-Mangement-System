@@ -1,4 +1,15 @@
-{% extends 'base.html' %} {% block title %} Update Book {% endblock title %} {%
+{% extends 'base.html' %} 
+{% block button %}
+   <ul class="navbar-nav" style="margin-left:auto;">
+    <li class="nav-item">
+      <form action="{{ url_for('signout') }}" method="post">
+        <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+      </form>
+    </li>
+   </ul>
+{% endblock button %}
+{% block title %} Update Book {% endblock title %} 
+{%
 block content %}
 <h1>Update Book</h1>
 
