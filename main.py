@@ -5,7 +5,7 @@ from tabnanny import check
 from urllib import response
 import uuid
 from flask import Flask, jsonify, make_response, redirect,request,render_template, session, url_for
-from flask_jwt_extended import get_jwt_identity, jwt_required
+# from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Integer
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -63,7 +63,7 @@ def token_required(f):
     def decorated(*args, **kwargs):
         
         token = request.cookies.get('access_token') 
-
+        
         if not token:
             return jsonify({'message': 'Token is missing!'}), 401
         try:
