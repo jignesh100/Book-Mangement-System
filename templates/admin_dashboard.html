@@ -14,83 +14,49 @@
    </ul>
 {% endblock button %}
 
-
-
 {% block content %}
-<h1 style="text-align: center;" class="my-2">Welcome to Admin Dashboard</h1>
 
-<div class="my-3 mx-3">
-<h3>Add New Book</h3>
-<form action="{{ url_for('add_book') }}" method="POST">
-    <div class="mb-3">
-        <label for="b_name" class="form-label">Book Title</label>
-        <input type="text" class="form-control" name="b_name" required>
-    </div>
-    
-    <div class="mb-3">
-        <label for="b_auth" class="form-label">Author</label>
-        <input type="text" class="form-control" name="b_auth" required>
-    </div>
-
-    <div class="mb-3">
-        <label for="b_isbn" class="form-label">ISBN</label>
-        <input type="text" class="form-control" name="b_isbn" required>
-    </div>
-
-    <div class="mb-3">
-        <label for="b_pub_year" class="form-label">Publication Year</label>
-        <input type="number" class="form-control" name="b_pub_year" required>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Add Book</button>
-</form>
+   <div class="d-flex gap-2 mb-3">
+    <form action="{{ url_for('add_book') }}" method="get">
+        <button type="submit" class="btn btn-success">Add New Book</button>
+    </form>
+    <form action="{{ url_for('update_books_page') }}" method="get">
+        <button type="submit" class="btn btn-warning">Update Book</button>
+    </form>
+    <!-- <form action="{{ url_for('update_books_page') }}" method="get">
+        <button type="submit" class="btn btn-danger">Approvals</button>
+    </form> -->
+   
 </div>
+
 
     {% if books|length == 0 %}
     <div class="alert alert-secondary" role="alert">
         No Books Found!
     </div>
+
     {% else %}
+    
+
+
     <table class="table mx-4">
         <thead>
             <tr>
                 <th scope="col">Sr.no</th>
                 <th scope="col">Title</th>
-                <th scope="col">Author</th>
-                <th scope="col">ISBN</th>
-                <th scope="col">Publication Year</th>
-                <th scope="col">Availability</th>
-                <th scope="col">Operations</th>
             </tr>
         </thead>
         <tbody>
             {% for book in books %}
             <tr>
                 <th scope="row">{{ loop.index }}</th>
-                <td>{{ book.b_name }}</td>
-                <td>{{ book.b_auth }}</td>
-                <td>{{ book.b_isbn }}</td>
-                <td>{{ book.b_pub_year }}</td>
-                <td>{{ 'Yes' if book.b_check else 'No' }}</td>
-                <td>
-                    <a href="{{ url_for('update_book', b_id=book.b_id) }}" class="btn btn-success btn-sm mx-1">Update</a>
-                    <form action="{{ url_for('delete_book', b_id=book.b_id) }}" method="POST" style="display:inline;">
-                      <button type="submit" class="btn btn-danger btn-sm mx-1">Delete</button>
-                  </form>
+                <td>{{ book.b_name }}</td>      
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     {% endif %}
-
-
-
-
-
-
-
-
 
 
 {% endblock %}

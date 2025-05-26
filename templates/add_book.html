@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  ADD BOOKS
+{% endblock title %}
+
+{% block button %}
+   <ul class="navbar-nav" style="margin-left:auto;">
+    <li class="nav-item">
+      <form action="{{ url_for('signout') }}" method="post">
+        <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+      </form>
+    </li>
+   </ul>
+{% endblock button %}
+
+
+
+{% block content %}
+<h1 style="text-align: center;" class="my-2">Welcome to ADD BOOK PAGE</h1>
+
+<div class="my-3 mx-3">
+<h3>Add New Book</h3>
+<form action="{{ url_for('add_book') }}" method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="b_name" class="form-label">Book Title</label>
+        <input type="text" class="form-control" name="b_name" required>
+    </div>
+    
+    <div class="mb-3">
+        <label for="b_auth" class="form-label">Author</label>
+        <input type="text" class="form-control" name="b_auth" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="b_isbn" class="form-label">ISBN</label>
+        <input type="text" class="form-control" name="b_isbn" required>
+    </div>
+
+    <div class="mb-3">
+        <label for="b_pub_year" class="form-label">Publication Year</label>
+        <input type="number" class="form-control" name="b_pub_year" required>
+    </div>
+    
+    <div class="mb-3">
+            <label for="pdf_file" class="form-label">Upload PDF </label>
+            <input type="file" class="form-control" name="pdf_file" accept="application/pdf">
+            <div class="form-text">Only PDF files are allowed. Maximum file size: 16MB</div>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Book</button>
+</form>
+</div>
+ 
+
+{% endblock %}

@@ -9,7 +9,9 @@ from flask import Flask, jsonify, make_response, redirect,request,render_templat
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Integer
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import jwt
+import os
 
 app = Flask(__name__)
 
@@ -17,6 +19,17 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'YeMeriKeyHAi'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+#-----FILE 
+app.config['UPLOAD_FOLDER'] = 'uploads/pdfs'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+ALLOWED_EXTENSIONS = {'pdf'}
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 
 db = SQLAlchemy(app)
@@ -42,6 +55,7 @@ class Books(db.Model):
     b_isbn = db.Column(db.String(20), unique=True)
     b_pub_year = db.Column(db.Integer)
     b_check = db.Column(db.Boolean)
+    pdf_filename = db.Column(db.String(255)) 
 
     def to_json(self):
         return {
@@ -50,7 +64,8 @@ class Books(db.Model):
             "b_auth": self.b_auth,
             "b_isbn": self.b_isbn,
             "b_pub_year": self.b_pub_year,
-            "b_check": self.b_check
+            "b_check": self.b_check,
+            "pdf_filename": self.pdf_filename
         }
 
 
@@ -161,6 +176,26 @@ def admin_dashboard(current_user: User):
     return render_template('admin_dashboard.html',books=books) 
 
 
+#--------------Button Routes--------------
+
+@app.route('/addbook', methods=['GET'])
+@token_required
+def show_add_book_form(current_user):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    return render_template('add_book.html')
+
+@app.route('/updatebooks')
+@token_required
+def update_books_page(current_user):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+
+    books = Books.query.all()
+    return render_template('update_book.html', books=books)
+
+
+
 @app.route('/addbook', methods=['POST'])
 @token_required
 def add_book(current_user):
@@ -175,10 +210,30 @@ def add_book(current_user):
    
     existing_book = Books.query.filter_by(b_isbn=b_isbn).first()
     if existing_book:
-        return jsonify({"message": "Book with this ISBN already exists!"}), 400
+        return render_template('add_book.html', error="Book with this ISBN already exists!")
+    
+    # Handle PDF file upload
+    pdf_filename = None
+    if 'pdf_file' in request.files:
+        file = request.files['pdf_file']
+        if file and file.filename != '' and allowed_file(file.filename):
+            # Create unique filename to avoid conflicts
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            
+            try:
+                file.save(file_path)
+                pdf_filename = unique_filename
+            except Exception as e:
+                print(f"Error saving file: {str(e)}")
+                return render_template('add_book.html', error="Error uploading PDF file!")
+        elif file and file.filename != '' and not allowed_file(file.filename):
+            return render_template('add_book.html', error="Only PDF files are allowed!")
+        
 
    
-    new_book = Books(b_name=b_name, b_auth=b_auth, b_isbn=b_isbn, b_pub_year=b_pub_year, b_check=True)
+    new_book = Books(b_name=b_name, b_auth=b_auth, b_isbn=b_isbn, b_pub_year=b_pub_year, b_check=True,pdf_filename=pdf_filename)
     db.session.add(new_book)
     db.session.commit()
 
@@ -207,24 +262,34 @@ def update_book(current_user, b_id):
     book = Books.query.filter_by(b_id=b_id).first()
     if not book:
         return jsonify({"message": "Book not found!"}), 404
-    
+
     if request.method == 'POST':
-      
         book.b_name = request.form.get('b_name')
         book.b_auth = request.form.get('b_auth')
         book.b_isbn = request.form.get('b_isbn')
         book.b_pub_year = request.form.get('b_pub_year')
-        data = request.form
-        check = data.get('availability')
-        if check=="YES":
-            book.b_check=True
-        elif check=="NO":
-            book.b_check=False
-        print(book.b_check)
+        check = request.form.get('availability')
+        book.b_check = (check == "YES")
         db.session.commit()
-        return redirect(url_for('admin_dashboard'))  
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('update.html', book=book)
+
+
+#--------Download Book---------#
+@app.route('/download_pdf/<int:b_id>')
+@token_required
+def download_pdf(current_user, b_id):
+    book = Books.query.filter_by(b_id=b_id).first()
+    if not book or not book.pdf_filename:
+        return jsonify({"message": "PDF not found!"}), 404
+    
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], book.pdf_filename)
+    if not os.path.exists(file_path):
+        return jsonify({"message": "PDF file not found on server!"}), 404
+    
+    from flask import send_file
+    return send_file(file_path, as_attachment=True, download_name=f"{book.b_name}.pdf")
 
 
 @app.route('/')

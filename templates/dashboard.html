@@ -31,6 +31,7 @@
                 <th scope="col">ISBN</th>
                 <th scope="col">Publication Year</th>
                 <th scope="col">Availability</th>
+                <th scope="col">Subscribe</th>
             </tr>
         </thead>
         <tbody>
@@ -42,6 +43,12 @@
                 <td>{{ book.b_isbn }}</td>
                 <td>{{ book.b_pub_year }}</td>
                 <td>{{ 'Yes' if book.b_check else 'No' }}</td>
+                <td>
+                    <form action="{{ url_for('download_pdf', b_id=book.b_id) }}" method="get" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm mx-1">Download</button>
+                    </form>
+                </td>
+               
             </tr>
             {% endfor %}
         </tbody>
