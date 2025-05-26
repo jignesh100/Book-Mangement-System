@@ -4,7 +4,7 @@ from os import name
 from tabnanny import check
 from urllib import response
 import uuid
-from flask import Flask, jsonify, make_response, redirect,request,render_template, session, url_for
+from flask import Flask, flash, jsonify, make_response, redirect,request,render_template, session, url_for
 # from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Integer
@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import jwt
 import os
-
+from flask import flash
 app = Flask(__name__)
 
 
@@ -31,7 +31,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
+#---------------DATABASE----------------------#
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -68,11 +68,21 @@ class Books(db.Model):
             "pdf_filename": self.pdf_filename
         }
 
+class BookDownloadRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    book_id = db.Column(db.Integer, db.ForeignKey('books.b_id'))
+    status = db.Column(db.String(20), default='pending')  # pending / approved / rejected
+    request_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    user = db.relationship('User', backref='requests')
+    book = db.relationship('Books', backref='requests')
+
 
 with app.app_context():
     db.create_all()
 
-
+#----------------AUTHENTICATION----------------
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -148,7 +158,6 @@ def register():
     
     return render_template('sign_up.html')
 
-
 @app.route('/signout', methods=['POST'])
 @token_required
 def signout(current_user: User):
@@ -156,15 +165,12 @@ def signout(current_user: User):
     response.delete_cookie('access_token')  # Delete the access_token cookie to log the user out
     return response
 
-
-
 @app.route('/dashboard')
 @token_required
 def dashboard(current_user:User):
     books=Books.query.all()
     return render_template('dashboard.html',username=current_user.name,email=current_user.email,books=books)
-
-    
+ 
 #admin section
 
 @app.route('/admin_dashboard')
@@ -193,6 +199,17 @@ def update_books_page(current_user):
 
     books = Books.query.all()
     return render_template('update_book.html', books=books)
+
+
+@app.route('/view_requests')
+@token_required
+def view_requests(current_user):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    
+    requests = BookDownloadRequest.query.all()
+    return render_template('requests.html', requests=requests)
+
 
 
 
@@ -270,10 +287,78 @@ def update_book(current_user, b_id):
         book.b_pub_year = request.form.get('b_pub_year')
         check = request.form.get('availability')
         book.b_check = (check == "YES")
+
+        # Handle updated PDF file
+        if 'pdf_file' in request.files:
+            file = request.files['pdf_file']
+            if file and file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+
+                try:
+                    file.save(file_path)
+                    # Optionally delete the old PDF
+                    if book.pdf_filename:
+                        old_path = os.path.join(app.config['UPLOAD_FOLDER'], book.pdf_filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+                    book.pdf_filename = unique_filename
+                except Exception as e:
+                    print(f"Error saving file: {str(e)}")
+                    return render_template('update.html', book=book, error="Error uploading new PDF!")
+
+            elif file and file.filename != '' and not allowed_file(file.filename):
+                return render_template('update.html', book=book, error="Only PDF files are allowed!")
+
         db.session.commit()
         return redirect(url_for('admin_dashboard'))
 
     return render_template('update.html', book=book)
+
+
+
+
+
+
+@app.route('/request_pdf/<int:b_id>', methods=['POST'])
+@token_required
+def request_pdf(current_user, b_id):
+    # Check if request already exists
+    existing_request = BookDownloadRequest.query.filter_by(user_id=current_user.id, book_id=b_id).first()
+    if existing_request:
+        return redirect(url_for('dashboard'))
+
+    new_request = BookDownloadRequest(user_id=current_user.id, book_id=b_id)
+    db.session.add(new_request)
+    db.session.commit()
+    # flash('Name submitted successfully!', 'success')
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/approve_request/<int:request_id>', methods=['POST'])
+@token_required
+def approve_request(current_user, request_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    
+    req = BookDownloadRequest.query.get_or_404(request_id)
+    req.status = 'approved'
+    db.session.commit()
+    return redirect(url_for('view_requests'))
+
+@app.route('/reject_request/<int:request_id>', methods=['POST'])
+@token_required
+def reject_request(current_user, request_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    
+    req = BookDownloadRequest.query.get_or_404(request_id)
+    req.status = 'rejected'
+    db.session.commit()
+    return redirect(url_for('view_requests'))
+
+
 
 
 #--------Download Book---------#
@@ -283,13 +368,24 @@ def download_pdf(current_user, b_id):
     book = Books.query.filter_by(b_id=b_id).first()
     if not book or not book.pdf_filename:
         return jsonify({"message": "PDF not found!"}), 404
-    
+
+    # Check approval
+    request_record = BookDownloadRequest.query.filter_by(user_id=current_user.id, book_id=b_id).first()
+    if not request_record or request_record.status != 'approved':
+        return jsonify({"message": "Download not approved by admin!"}), 403
+
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], book.pdf_filename)
     if not os.path.exists(file_path):
         return jsonify({"message": "PDF file not found on server!"}), 404
-    
+
     from flask import send_file
     return send_file(file_path, as_attachment=True, download_name=f"{book.b_name}.pdf")
+
+
+
+
+
+
 
 
 @app.route('/')

@@ -15,7 +15,7 @@
 {% endblock button %}
 
 {% block content %}
-
+   <h1 style="text-align: center;" class="my-3">Welcome to ADMIN Dashboard</h1>
    <div class="d-flex gap-2 mb-3">
     <form action="{{ url_for('add_book') }}" method="get">
         <button type="submit" class="btn btn-success">Add New Book</button>
@@ -23,10 +23,10 @@
     <form action="{{ url_for('update_books_page') }}" method="get">
         <button type="submit" class="btn btn-warning">Update Book</button>
     </form>
-    <!-- <form action="{{ url_for('update_books_page') }}" method="get">
-        <button type="submit" class="btn btn-danger">Approvals</button>
-    </form> -->
-   
+    <form action="{{ url_for('view_requests') }}" method="get">
+        <button type="submit" class="btn btn-primary">View Download Requests</button>
+    </form>
+
 </div>
 
 

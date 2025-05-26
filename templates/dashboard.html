@@ -48,6 +48,11 @@
                       <button type="submit" class="btn btn-danger btn-sm mx-1">Download</button>
                     </form>
                 </td>
+                <td>
+                    <form method="POST" action="{{ url_for('request_pdf', b_id=book.b_id) }}">
+                        <button type="submit">Request PDF</button>
+                    </form>
+                </td>
                
             </tr>
             {% endfor %}
