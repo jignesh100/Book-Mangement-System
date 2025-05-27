@@ -4,6 +4,13 @@
   Admin Dashboard
 {% endblock title %}
 
+
+
+
+
+
+
+
 {% block button %}
    <ul class="navbar-nav" style="margin-left:auto;">
     <li class="nav-item">
@@ -26,18 +33,20 @@
     <form action="{{ url_for('view_requests') }}" method="get">
         <button type="submit" class="btn btn-primary">View Download Requests</button>
     </form>
+    <section>
+        <form method="POST" action="/search" >
+            <input type="text" name="search_keyword"   placeholder="Enter a keyword">
+               <button type="submit"  >Search</button>
+                </form>
+    </section>
+
 
 </div>
-
-
     {% if books|length == 0 %}
     <div class="alert alert-secondary" role="alert">
         No Books Found!
     </div>
-
     {% else %}
-    
-
 
     <table class="table mx-4">
         <thead>

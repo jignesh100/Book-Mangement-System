@@ -207,8 +207,9 @@ def view_requests(current_user):
     if current_user.role != 'admin':
         return redirect(url_for('dashboard'))
     
-    requests = BookDownloadRequest.query.all()
+    requests = BookDownloadRequest.query.filter_by(status='pending').all()
     return render_template('requests.html', requests=requests)
+
 
 
 
@@ -267,7 +268,7 @@ def delete_book(current_user,b_id):
         return jsonify({"message": "Book not found!"}), 404
     db.session.delete(book)
     db.session.commit()
-    return redirect(url_for('admin_dashboard')) 
+    return redirect(url_for('update_books_page')) 
 
 
 @app.route('/updatebook/<int:b_id>', methods=['GET', 'POST'])
@@ -312,7 +313,7 @@ def update_book(current_user, b_id):
                 return render_template('update.html', book=book, error="Only PDF files are allowed!")
 
         db.session.commit()
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('update_books_page'))
 
     return render_template('update.html', book=book)
 
@@ -332,7 +333,6 @@ def request_pdf(current_user, b_id):
     new_request = BookDownloadRequest(user_id=current_user.id, book_id=b_id)
     db.session.add(new_request)
     db.session.commit()
-    # flash('Name submitted successfully!', 'success')
     return redirect(url_for('dashboard'))
 
 
@@ -355,6 +355,7 @@ def reject_request(current_user, request_id):
     
     req = BookDownloadRequest.query.get_or_404(request_id)
     req.status = 'rejected'
+    db.session.delete(req)
     db.session.commit()
     return redirect(url_for('view_requests'))
 
@@ -383,7 +384,29 @@ def download_pdf(current_user, b_id):
 
 
 
+@app.route('/search', methods=['POST'])
+def search():
+    keyword = request.form.get('search_keyword')
+    if keyword:
+        results = Books.query.filter(Books.b_name.contains(keyword)).all()
+        return render_template('search_results.html', results=results, keyword=keyword)
+    return redirect('/')
 
+
+
+
+
+
+
+
+
+
+@app.route('/home')
+@token_required
+def home(current_user):
+    if current_user.role == 'admin':
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('dashboard'))
 
 
 

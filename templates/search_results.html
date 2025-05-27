@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Results</title>
+</head>
+<body>
+    <header>
+        <h1>Search Results for "{{ keyword }}"</h1>
+    </header>
+    <section>
+        <h2>Results</h2>
+        {% if results %}
+            <ul>
+                {% for result in results %}
+                    <li>{{ result.b_name }} by {{ result.b_auth }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No books found for "{{ keyword }}".</p>
+        {% endif %}
+    </section>
+</body>
+</html>
