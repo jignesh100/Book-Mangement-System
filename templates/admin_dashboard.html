@@ -5,12 +5,6 @@
 {% endblock title %}
 
 
-
-
-
-
-
-
 {% block button %}
    <ul class="navbar-nav" style="margin-left:auto;">
     <li class="nav-item">
@@ -30,17 +24,12 @@
     <form action="{{ url_for('update_books_page') }}" method="get">
         <button type="submit" class="btn btn-warning">Update Book</button>
     </form>
-    <form action="{{ url_for('view_requests') }}" method="get">
-        <button type="submit" class="btn btn-primary">View Download Requests</button>
+    <form action="{{ url_for('add_revoke') }}" method="get">
+        <button type="submit" class="btn btn-primary">add_revoke_access</button>
     </form>
-    <section>
-        <form method="POST" action="/search" >
-            <input type="text" name="search_keyword"   placeholder="Enter a keyword">
-               <button type="submit"  >Search</button>
-                </form>
-    </section>
+    
 
-
+#TODO paginations
 </div>
     {% if books|length == 0 %}
     <div class="alert alert-secondary" role="alert">

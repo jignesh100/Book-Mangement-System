@@ -13,23 +13,72 @@ from werkzeug.utils import secure_filename
 import jwt
 import os
 from flask import flash
+from sqlalchemy import create_engine, ForeignKey, Column, Integer, String, Text
+from sqlalchemy.orm import sessionmaker, relationship
+from flask_mail import Mail, Message
+from sqlalchemy.ext.declarative import declarative_base
 app = Flask(__name__)
+import datetime
 
 
 app.config['SECRET_KEY'] = 'YeMeriKeyHAi'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-#-----FILE 
+
+
+# Email config
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'jigneshverulakar@gmail.com'
+app.config['MAIL_PASSWORD'] = 'ulxh bacz qjzr jnal'  # Use an app-specific password
+
+mail = Mail(app)
+
+
+
+
+
+
+
+
+#-----FILE-----------------------
 app.config['UPLOAD_FOLDER'] = 'uploads/pdfs'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 ALLOWED_EXTENSIONS = {'pdf'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
+
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#for the cascading Delete 
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 #---------------DATABASE----------------------#
 db = SQLAlchemy(app)
@@ -68,43 +117,55 @@ class Books(db.Model):
             "pdf_filename": self.pdf_filename
         }
 
+
 class BookDownloadRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    book_id = db.Column(db.Integer, db.ForeignKey('books.b_id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"))
+    book_id = db.Column(db.Integer, db.ForeignKey('books.b_id', ondelete="CASCADE"))
     status = db.Column(db.String(20), default='pending')  # pending / approved / rejected
     request_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    user = db.relationship('User', backref='requests')
-    book = db.relationship('Books', backref='requests')
+    user = db.relationship('User', backref=db.backref('requests', cascade='all, delete-orphan', passive_deletes=True))
+    book = db.relationship('Books', backref=db.backref('requests', cascade='all, delete-orphan', passive_deletes=True))
+
+
+class OTPVerification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(70), unique=True)
+    otp = db.Column(db.String(6))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    verified = db.Column(db.Boolean, default=False)
+
 
 
 with app.app_context():
     db.create_all()
 
+
+
 #----------------AUTHENTICATION----------------
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        
         token = request.cookies.get('access_token') 
-        
+
         if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
+            return redirect(url_for('login', session_expired=1))
+
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             current_user = User.query.filter_by(email=data['email']).first()
         except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
+            return redirect(url_for('login', session_expired=1))
         except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
+            return redirect(url_for('login', session_expired=1))
         except Exception as e:
-            print(str(e))  # print exact error in terminal
-            return jsonify({'message': 'Something went wrong!'}), 500
+            print(str(e))
+            return redirect(url_for('login', session_expired=1))
 
         return f(current_user, *args, **kwargs)
-
     return decorated
+
 
 
 @app.route('/signin', methods=['POST', 'GET'])
@@ -117,23 +178,30 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and user.password == _pass:  # Compare the password directly
+            flash('User LoggedIn Successfully!', 'success')
             access_token = jwt.encode(
                 {'email': email, 'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)},
                 app.config['SECRET_KEY'], algorithm="HS256"
             )
-            
             if isinstance(access_token, bytes):
                 access_token = access_token.decode('utf-8')
 
             response = make_response(redirect(url_for('dashboard' if user.role == 'customer' else 'admin_dashboard')))
             response.set_cookie('access_token', access_token, httponly=True, secure=False, samesite='Lax')
+            
             return response
         else:
+            flash('Invalid Credentials!', 'error')
             return render_template('sign_in.html', message="Invalid credentials!")
-            
+       
     return render_template('sign_in.html')
 
 
+
+import random
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
 
 @app.route('/signup', methods=["POST", "GET"])
 def register():
@@ -144,32 +212,213 @@ def register():
         _pass = data.get('password')
         role = data.get('role')
 
-        # Check if user already exists by email
-        user = User.query.filter_by(email=email).first()
-    
-        if user:
-            return {"message": "User already exists, please log in!"}
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash("User already exists, please log in!", "error")
+            return render_template('sign_up.html')
 
-        new_user = User(name=name, email=email, password=_pass, role=role)  # Store password as is
-        db.session.add(new_user)
+        otp = generate_otp()
+        existing_otp = OTPVerification.query.filter_by(email=email).first()
+        if existing_otp:
+            # Update OTP and timestamp
+            existing_otp.otp = otp
+            existing_otp.created_at =  datetime.datetime.utcnow()
+            existing_otp.verified = False
+        else:
+            # Create new OTP record
+            new_otp = OTPVerification(email=email, otp=otp, created_at=datetime.datetime.utcnow(), verified=False)
+            db.session.add(new_otp)
+            db.session.commit()
+
+        # Send email
+        msg = Message(
+            'Verify your email - OTP',
+            sender='your_email@gmail.com',
+            recipients=[email]
+        )
+        msg.html = render_template(
+            'email.html',
+            name=name,
+            otp=otp,
+            current_year=datetime.datetime.now().year,
+            otp_valid_minutes=10,
+            logo_url='https://yourdomain.com/static/logo.png',  # or use url_for('static', filename='logo.png')
+            website_url='https://yourdomain.com'
+        )
+        mail.send(msg)
+
+        
+        session['temp_user'] = {'name': name, 'email': email, 'password': _pass, 'role': role}
+        flash("OTP sent to your email!", "info")
+        return redirect(url_for('verify_otp'))
+
+    return render_template('sign_up.html')
+
+@app.route('/verify_otp', methods=["GET", "POST"])
+def verify_otp():
+    if 'temp_user' not in session:
+        return redirect(url_for('register'))
+
+    temp = session['temp_user']
+    email = temp['email']
+
+    if request.method == 'POST':
+        user_otp = request.form.get('otp')
+        otp_entry = OTPVerification.query.filter_by(email=email).first()
+
+        if not otp_entry:
+            flash("No OTP record found for this email!", "error")
+            return render_template('verify_otp.html')
+
+        # Check if OTP expired (valid for 10 minutes)
+        time_diff = datetime.datetime.utcnow() - otp_entry.created_at
+        if time_diff.total_seconds() > 600:
+            db.session.delete(otp_entry)
+            db.session.commit()
+            flash("OTP has expired. Please register again.", "error")
+            session.pop('temp_user', None)
+            return redirect(url_for('register'))
+
+        # Check if OTP matches
+        if otp_entry.otp == user_otp:
+            new_user = User(name=temp['name'], email=email, password=temp['password'], role=temp['role'])
+            db.session.add(new_user)
+            db.session.delete(otp_entry)
+            db.session.commit()
+            session.pop('temp_user', None)
+            flash("Email verified and account created successfully!", "success")
+            return redirect(url_for('login'))
+        else:
+            flash("Invalid OTP!", "error")
+
+    return render_template('verify_otp.html' ,email=email)
+
+@app.route('/resend_otp', methods=['POST'])
+def resend_otp():
+    if 'temp_user' not in session:
+        return redirect(url_for('register'))
+
+    temp = session['temp_user']
+    email = temp['email']
+    name = temp['name']
+
+    # Generate and update OTP
+    otp = generate_otp()
+    otp_entry = OTPVerification.query.filter_by(email=email).first()
+    if otp_entry:
+        otp_entry.otp = otp
+        otp_entry.created_at = datetime.datetime.utcnow()
+        otp_entry.verified = False
+    else:
+        new_otp = OTPVerification(email=email, otp=otp)
+        db.session.add(new_otp)
+
+    db.session.commit()
+
+    # Resend email
+    msg = Message('Your New OTP - Book Management', sender='your_email@gmail.com', recipients=[email])
+    msg.html = render_template(
+        'email.html',
+        name=name,
+        otp=otp,
+        current_year=datetime.datetime.now().year,
+        otp_valid_minutes=10,
+        logo_url='https://yourdomain.com/static/logo.png',
+        website_url='https://yourdomain.com'
+    )
+    mail.send(msg)
+
+    flash("A new OTP has been sent to your email.", "info")
+    return redirect(url_for('verify_otp'))
+
+
+@app.route('/edit_email', methods=['GET', 'POST'])
+def edit_email():
+    temp_user = session.get('temp_user')
+
+    if not temp_user:
+        flash("Session expired. Please start over.", "error")
+        return redirect(url_for('register'))
+
+    if request.method == 'POST':
+        new_email = request.form.get('email')
+        existing = User.query.filter_by(email=new_email).first()
+        if existing:
+            flash("Email already registered. Please use another one.", "error")
+            return redirect(url_for('edit_email'))
+
+        # Update email in session
+        session['temp_user']['email'] = new_email
+
+        # Generate and store new OTP
+        otp = generate_otp()
+        otp_entry = OTPVerification.query.filter_by(email=new_email).first()
+
+        if otp_entry:
+            otp_entry.otp = otp
+            otp_entry.created_at = datetime.datetime.utcnow()
+            otp_entry.verified = False
+        else:
+            new_otp = OTPVerification(email=new_email, otp=otp, created_at=datetime.datetime.utcnow(), verified=False)
+            db.session.add(new_otp)
+
         db.session.commit()
 
-        return redirect(url_for('login'))  # Redirect to login page after successful registration
-    
-    return render_template('sign_up.html')
+        # Send new OTP email
+        msg = Message('Verify Your New Email', sender='your_email@gmail.com', recipients=[new_email])
+        msg.html = render_template(
+            'email.html',
+            name=temp_user['name'],
+            otp=otp,
+            current_year=2023,
+            otp_valid_minutes=10
+        )
+        mail.send(msg)
+
+        flash("Email updated. A new OTP was sent.", "success")
+        return redirect(url_for('verify_otp'))
+
+    return render_template('edit_email.html')
+
+
 
 @app.route('/signout', methods=['POST'])
 @token_required
 def signout(current_user: User):
+    flash("User Sign Out Successfully!","success")
     response = make_response(redirect(url_for('login')))  # Redirect to login page after signout
     response.delete_cookie('access_token')  # Delete the access_token cookie to log the user out
     return response
 
-@app.route('/dashboard')
+
+
+#TODO impelment the Status and Dowload Column according to permission
+@app.route('/dashboard', methods=['GET', 'POST'])
 @token_required
-def dashboard(current_user:User):
-    books=Books.query.all()
-    return render_template('dashboard.html',username=current_user.name,email=current_user.email,books=books)
+def dashboard(current_user: User):
+    keyword = ''
+    if request.method == 'POST':
+        keyword = request.form.get('search_keyword', '').strip()
+        books = (
+            Books.query
+            .filter(
+                (Books.b_name.ilike(f'%{keyword}%')) |
+                (Books.b_auth.ilike(f'%{keyword}%')) |
+                (Books.b_isbn.ilike(f'%{keyword}%'))
+            )
+            .all()
+        ) if keyword else Books.query.all()
+    else:
+        books = Books.query.all()
+
+    return render_template(
+        'dashboard.html',
+        username=current_user.name,
+        email=current_user.email,
+        books=books,
+        keyword=keyword
+    )
+
  
 #admin section
 
@@ -184,6 +433,7 @@ def admin_dashboard(current_user: User):
 
 #--------------Button Routes--------------
 
+#TODO Account Admin Approvals
 @app.route('/addbook', methods=['GET'])
 @token_required
 def show_add_book_form(current_user):
@@ -191,26 +441,49 @@ def show_add_book_form(current_user):
         return redirect(url_for('dashboard'))
     return render_template('add_book.html')
 
-@app.route('/updatebooks')
+@app.route('/updatebooks', methods=['GET', 'POST'])
 @token_required
 def update_books_page(current_user):
+    #  Only admins may visit
     if current_user.role != 'admin':
         return redirect(url_for('dashboard'))
 
-    books = Books.query.all()
-    return render_template('update_book.html', books=books)
+    keyword = ''
+    # ── Handle the search form ─────────────────────
+    if request.method == 'POST':
+        keyword = request.form.get('search_keyword', '').strip()
+        # Search in name, author or ISBN (case-insensitive)
+        books = (
+            Books.query
+            .filter(
+                (Books.b_name.ilike(f'%{keyword}%'))    |
+                (Books.b_auth.ilike(f'%{keyword}%'))    |
+                (Books.b_isbn.ilike(f'%{keyword}%'))
+            )
+            .all()
+        ) if keyword else Books.query.all()
+    else:
+        books = Books.query.all()
+
+    return render_template(
+        'update_book.html',
+        books=books,
+        keyword=keyword   
+    )
 
 
-@app.route('/view_requests')
+
+
+
+
+#---------------add-revoke-access---------------------
+@app.route('/add_revoke')
 @token_required
-def view_requests(current_user):
+def add_revoke(current_user):
     if current_user.role != 'admin':
         return redirect(url_for('dashboard'))
-    
-    requests = BookDownloadRequest.query.filter_by(status='pending').all()
-    return render_template('requests.html', requests=requests)
-
-
+    requests = BookDownloadRequest.query.all()
+    return render_template('add_revoke.html',requests=requests)
 
 
 
@@ -228,6 +501,7 @@ def add_book(current_user):
    
     existing_book = Books.query.filter_by(b_isbn=b_isbn).first()
     if existing_book:
+        flash("Book with this ISBN already exists!","error")
         return render_template('add_book.html', error="Book with this ISBN already exists!")
     
     # Handle PDF file upload
@@ -254,8 +528,9 @@ def add_book(current_user):
     new_book = Books(b_name=b_name, b_auth=b_auth, b_isbn=b_isbn, b_pub_year=b_pub_year, b_check=True,pdf_filename=pdf_filename)
     db.session.add(new_book)
     db.session.commit()
-
+    flash("The Book is added Successfully!","success")
     return redirect(url_for('admin_dashboard'))  
+
 
 
 @app.route('/deletebook/<int:b_id>',methods=['POST'])
@@ -268,6 +543,10 @@ def delete_book(current_user,b_id):
         return jsonify({"message": "Book not found!"}), 404
     db.session.delete(book)
     db.session.commit()
+    flash("The Book Deleted Successfully!","success")
+  
+
+
     return redirect(url_for('update_books_page')) 
 
 
@@ -313,6 +592,7 @@ def update_book(current_user, b_id):
                 return render_template('update.html', book=book, error="Only PDF files are allowed!")
 
         db.session.commit()
+        flash("The Book is Successfully Updated!","success")
         return redirect(url_for('update_books_page'))
 
     return render_template('update.html', book=book)
@@ -345,19 +625,17 @@ def approve_request(current_user, request_id):
     req = BookDownloadRequest.query.get_or_404(request_id)
     req.status = 'approved'
     db.session.commit()
-    return redirect(url_for('view_requests'))
+    return redirect(url_for('add_revoke'))
 
 @app.route('/reject_request/<int:request_id>', methods=['POST'])
 @token_required
 def reject_request(current_user, request_id):
     if current_user.role != 'admin':
         return redirect(url_for('dashboard'))
-    
     req = BookDownloadRequest.query.get_or_404(request_id)
     req.status = 'rejected'
-    db.session.delete(req)
     db.session.commit()
-    return redirect(url_for('view_requests'))
+    return redirect(url_for('add_revoke'))
 
 
 
@@ -373,32 +651,17 @@ def download_pdf(current_user, b_id):
     # Check approval
     request_record = BookDownloadRequest.query.filter_by(user_id=current_user.id, book_id=b_id).first()
     if not request_record or request_record.status != 'approved':
-        return jsonify({"message": "Download not approved by admin!"}), 403
-
+        flash("Download not approved by admin!", "error")
+        return redirect(url_for('dashboard')) 
+        
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], book.pdf_filename)
     if not os.path.exists(file_path):
-        return jsonify({"message": "PDF file not found on server!"}), 404
+        flash("PDF file not found on server!", "error")
+        return redirect(url_for('dashboard'))  
+        
 
     from flask import send_file
     return send_file(file_path, as_attachment=True, download_name=f"{book.b_name}.pdf")
-
-
-
-@app.route('/search', methods=['POST'])
-def search():
-    keyword = request.form.get('search_keyword')
-    if keyword:
-        results = Books.query.filter(Books.b_name.contains(keyword)).all()
-        return render_template('search_results.html', results=results, keyword=keyword)
-    return redirect('/')
-
-
-
-
-
-
-
-
 
 
 @app.route('/home')

@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Book Management Verification Code</title>
+  <style type="text/css">
+    /* General styles */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-spacing: 0;
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    td {
+      padding: 0;
+    }
+    img {
+      border: 0;
+    }
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      -webkit-font-smoothing: antialiased;
+      font-smoothing: antialiased;
+    }
+    .main {
+      background-color: #ffffff;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 600px;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+    .content-area {
+      padding: 20px 30px;
+    }
+    .header-logo {
+      text-align: center;
+      padding: 30px 0;
+      background-color: #f8f8f8; /* Light background for header */
+      border-bottom: 1px solid #eeeeee;
+    }
+    .header-logo img {
+      max-width: 180px; /* Adjust logo size */
+      height: auto;
+    }
+    .footer {
+      padding: 20px 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #777777;
+      background-color: #f8f8f8;
+      border-top: 1px solid #eeeeee;
+    }
+    .otp-box {
+      background-color: #e0e0e0;
+      border: 1px solid #cccccc;
+      padding: 20px 30px;
+      margin: 20px 0;
+      text-align: center;
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #333333;
+      border-radius: 5px;
+    }
+    .important-note {
+        font-size: 14px;
+        color: #555555;
+        margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <center class="wrapper">
+    <table class="main" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td class="header-logo">
+          <img src="[LINK_TO_YOUR_LOGO_IMAGE]" alt="Book Management Logo" />
+          </td>
+      </tr>
+
+      <tr>
+        <td class="content-area">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding-bottom: 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                Hello {{ name }},
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom: 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                Thank you for signing up for Book Management! To verify your email address, please use the One-Time Password (OTP) below:
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="otp-box">
+                  {{ otp }}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="important-note" style="padding-bottom: 20px;">
+                Please enter this code on the verification screen within the next <strong style="color: #000000;">{{ otp_valid_minutes }}</strong>.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom: 20px; font-size: 14px; line-height: 22px; color: #555555;">
+                If you did not initiate this registration, please ignore this email.
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 16px; line-height: 24px; color: #333333; padding-top: 10px;">
+                Happy reading,
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 16px; line-height: 24px; color: #333333;">
+                The Book Management Team
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="footer">
+          &copy; {{ current_year }} Book Management. All rights reserved.<br>
+          <a href="[LINK_TO_YOUR_WEBSITE]" style="color: #007bff; text-decoration: none;">Visit Our Website</a>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>

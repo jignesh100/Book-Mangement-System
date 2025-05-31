@@ -17,6 +17,14 @@
     <h1>Welcome, {{ username }}!</h1>
     <p>Your email: {{ email }}</p>
     <h2>Available Books</h2>
+    <form method="POST" action="{{ url_for('dashboard') }}" class="d-flex mb-3">
+    <input  type="text"
+            name="search_keyword"
+            placeholder="Search title / author / ISBN"
+            class="form-control me-2"
+            value="{{ keyword | default('') }}">
+    <button type="submit" class="btn btn-outline-primary">Search</button>
+</form>
     {% if books|length == 0 %}
     <div class="alert alert-secondary" role="alert">
         No Books Found!
@@ -53,7 +61,6 @@
                         <button type="submit">Request PDF</button>
                     </form>
                 </td>
-               
             </tr>
             {% endfor %}
         </tbody>

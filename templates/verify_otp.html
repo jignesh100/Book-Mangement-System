@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <h5 class="mb-3">OTP Verification</h5>
+
+      <!-- Display email with Edit option -->
+      <div class="mb-3">
+        <label class="form-label">Email:</label>
+        <div class="d-flex align-items-center">
+          <strong>{{ session['temp_user']['email'] }}</strong>
+          <a href="{{ url_for('edit_email') }}" class="btn btn-sm btn-outline-primary ms-3">Edit</a>
+        </div>
+      </div>
+
+      <!-- OTP Input Form -->
+      <form method="POST">
+        <div class="mb-3">
+          <label for="otp" class="form-label">Enter OTP:</label>
+          <input type="text" name="otp" class="form-control" placeholder="Enter the OTP" required>
+        </div>
+        <button type="submit" class="btn btn-success">Verify OTP</button>
+      </form>
+
+      <!-- Resend OTP Button -->
+      <form method="POST" action="{{ url_for('resend_otp') }}" class="mt-3">
+        <button type="submit" class="btn btn-link">Resend OTP</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

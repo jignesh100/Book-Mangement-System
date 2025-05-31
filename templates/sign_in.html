@@ -7,11 +7,11 @@
     <div class="mb-3 mx-4" >
       <div>
         <label for="exampleInputEmail1" class="form-label" > Enter The Email</label>
-        <input type="email" name="email" class="form-control"  >
+        <input type="email" name="email" class="form-control"  required>
       </div>
       <div>
         <label for="exampleInputEmail1" class="form-label" > Enter The Password </label>
-        <input type="password" name="password" class="form-control"  >
+        <input type="password" name="password" class="form-control" required >
       </div>
       <button type="submit" class="btn btn-primary my-2"> Sign In </button>
       <a href="{{ url_for('register') }}" class="btn btn-link mx-1">Sign UP ?</a> 

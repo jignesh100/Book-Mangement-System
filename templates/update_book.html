@@ -17,7 +17,15 @@
 <div>This Is Update page </div>
 
 {% block content %}
-
+    <h1 style="text-align: center;" class="my-3">Welcome to UPDATE BOOK PAGE</h1>
+    <form method="POST" action="{{ url_for('update_books_page') }}" class="d-flex mb-3">
+    <input  type="text"
+            name="search_keyword"
+            placeholder="Search title / author / ISBN"
+            class="form-control me-2"
+            value="{{ keyword | default('') }}">
+    <button type="submit" class="btn btn-outline-primary">Search</button>
+</form>
     {% if books|length == 0 %}
     <div class="alert alert-secondary" role="alert">
         No Books Found!
@@ -49,7 +57,7 @@
                 <td>
                     <a href="{{ url_for('update_book', b_id=book.b_id) }}" class="btn btn-success btn-sm mx-1">Update</a>
                     <form action="{{ url_for('delete_book', b_id=book.b_id) }}" method="POST" style="display:inline;">
-                      <button type="submit" class="btn btn-danger btn-sm mx-1">Delete</button>
+                      <button type="submit" class="btn btn-danger btn-sm mx-1" onclick="return confirm('are you sure you want to delete ?')" >Delete</button>
                   </form>
                 </td>
                 
@@ -61,3 +69,5 @@
 
 
 {% endblock %}
+
+
