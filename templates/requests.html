@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Request
+{% endblock title %}
+
+{% block button %}
+<ul class="navbar-nav" style="margin-left:auto;">
+  <li class="nav-item">
+    <form action="{{ url_for('signout') }}" method="post">
+      <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+    </form>
+  </li>
+</ul>
+{% endblock button %}
+
+{% block content %}
+<h2>Download Requests</h2>
+
+{% if requests|length == 0 %}
+  <div class="alert alert-secondary" role="alert">
+    No Download Requests Found!
+  </div>
+{% else %}
+  <table class="table table-striped">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">User</th>
+        <th scope="col">Book</th>
+        <th scope="col">Status</th>
+        <th scope="col">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr>
+        <td>{{ r.user.name }}</td>
+        <td>{{ r.book.b_name }}</td>
+        <td>{{ r.status }}</td>
+        <td>
+          {% if r.status == 'pending' %}
+            <form action="{{ url_for('approve_request', request_id=r.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-success btn-sm">Approve</button>
+            </form>
+            <form action="{{ url_for('reject_request', request_id=r.id) }}" method="POST" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+            </form>
+          {% else %}
+            <span class="badge badge-info text-capitalize">{{ r.status }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock content %}

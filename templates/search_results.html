@@ -1,0 +1,26 @@
+
+{% extends 'base.html' %}
+
+{% block title %}
+  Request
+{% endblock title %}
+
+{% block button %}
+<ul class="navbar-nav" style="margin-left:auto;">
+  <li class="nav-item">
+    <form action="{{ url_for('signout') }}" method="post">
+      <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+    </form>
+  </li>
+</ul>
+{% endblock button %}
+
+{% block content %}
+<h2>Search results</h2>
+
+{% for result in results %}
+        <li >{{ result.b_name }} by {{ result.b_auth }}</li>
+{% endfor %}
+
+
+{% endblock content %}

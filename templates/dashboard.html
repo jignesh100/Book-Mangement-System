@@ -1,4 +1,14 @@
 {% extends 'base.html' %}
+{% block button %}
+   <ul class="navbar-nav" style="margin-left:auto;">
+    <li class="nav-item">
+      <form action="{{ url_for('signout') }}" method="post">
+        <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+      </form>
+    </li>
+   </ul>
+{% endblock button %}
+
 {% block title %}
     Dashboard
 {% endblock title %}
@@ -7,27 +17,61 @@
     <h1>Welcome, {{ username }}!</h1>
     <p>Your email: {{ email }}</p>
     <h2>Available Books</h2>
-    <table class="table mx-4" >
+    <form method="POST" action="{{ url_for('dashboard') }}" class="d-flex mb-3">
+    <input  type="text"
+            name="search_keyword"
+            placeholder="Search title / author / ISBN"
+            class="form-control me-2"
+            value="{{ keyword | default('') }}">
+    <button type="submit" class="btn btn-outline-primary">Search</button>
+
+    
+</form>
+    {% if books|length == 0 %}
+    <div class="alert alert-secondary" role="alert">
+        No Books Found!
+    </div>
+    {% else %}
+    <table class="table mx-4">
         <thead>
-            <th>Book ID</th>
-            <th>Book Name</th>
-            <th>Book Author</th>
-            <th>Available</th>
+            <tr>
+                <th scope="col">Sr.no</th>
+                <th scope="col">Title</th>
+                <th scope="col">Author</th>
+                <th scope="col">ISBN</th>
+                <th scope="col">Publication Year</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+            </tr>
         </thead>
         <tbody>
-            {% for book in books %}
-                    <tr>
-                        <td>{{ book.b_id }}</td>
-                        <td>{{ book.b_name }}</td>
-                        <td>{{ book.b_auth }}</td>
-                        <td>{{ 'Yes' if book.b_check else 'No' }}</td>
-                    </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4">No books found.</td>
-                        </tr>
+            {% for item in book_data %}
+              <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ item.book.b_name }}</td>
+                <td>{{ item.book.b_auth }}</td>
+                <td>{{ item.book.b_isbn }}</td>
+                <td>{{ item.book.b_pub_year }}</td>
+                <td>{{ item.status }}</td>
+                <td>
+                    {% if item.status == 'approved' %}
+                        <form action="{{ url_for('download_pdf', b_id=item.book.b_id) }}" method="get" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm mx-1">Download</button>
+                        </form>
+                    {% endif %}
+                    {% if item.status in ['pending', 'rejected', 'Not Requested'] %}
+                        <form method="POST" action="{{ url_for('request_pdf', b_id=item.book.b_id) }}">
+                            <button type="submit" class="btn btn-primary btn-sm mx-1"  >Request PDF</button>
+                        </form>
+                    {% endif %}
+                </td>
+
+                
+             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% endif %}
     
 {% endblock content %}
+

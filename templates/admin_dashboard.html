@@ -1,33 +1,60 @@
 {% extends 'base.html' %}
+
 {% block title %}
-    Dashboard
+  Admin Dashboard
 {% endblock title %}
 
+
+{% block button %}
+   <ul class="navbar-nav" style="margin-left:auto;">
+    <li class="nav-item">
+      <form action="{{ url_for('signout') }}" method="post">
+        <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+      </form>
+    </li>
+   </ul>
+{% endblock button %}
+
 {% block content %}
-    <h1>Welcome, {{ username }}!</h1>
-    <p>Your email: {{ email }}</p>
-    <h2>Available Books</h2>
-    <table class="table mx-4" >
+   <h1 style="text-align: center;" class="my-3">Welcome to ADMIN Dashboard</h1>
+   <div class="d-flex gap-2 mb-3">
+    <form action="{{ url_for('add_book') }}" method="get">
+        <button type="submit" class="btn btn-success">Add New Book</button>
+    </form>
+    <form action="{{ url_for('update_books_page') }}" method="get">
+        <button type="submit" class="btn btn-warning">Update Book</button>
+    </form>
+    <form action="{{ url_for('add_revoke') }}" method="get">
+        <button type="submit" class="btn btn-primary">add_revoke_access</button>
+    </form>
+    
+
+#TODO paginations
+</div>
+    {% if books|length == 0 %}
+    <div class="alert alert-secondary" role="alert">
+        No Books Found!
+    </div>
+    {% else %}
+
+    <table class="table mx-4">
         <thead>
-            <th>Book ID</th>
-            <th>Book Name</th>
-            <th>Book Author</th>
-            <th>Available</th>
+            <tr>
+                <th scope="col">Sr.no</th>
+                <th scope="col">Title</th>
+            </tr>
         </thead>
         <tbody>
             {% for book in books %}
-                    <tr>
-                        <td>{{ book.b_id }}</td>
-                        <td>{{ book.b_name }}</td>
-                        <td>{{ book.b_auth }}</td>
-                        <td>{{ 'Yes' if book.b_check else 'No' }}</td>
-                    </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4">No books found.</td>
-                        </tr>
+            <tr>
+                <th scope="row">{{ loop.index }}</th>
+                <td>{{ book.b_name }}</td>      
+                </td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
-    
-{% endblock content %}
+    {% endif %}
+
+
+{% endblock %}
