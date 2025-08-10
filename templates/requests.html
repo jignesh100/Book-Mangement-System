@@ -15,7 +15,7 @@
 {% endblock button %}
 
 {% block content %}
-<h2>Manage Download Requests</h2>
+<h2>Download Requests</h2>
 
 {% if requests|length == 0 %}
   <div class="alert alert-secondary" role="alert">
@@ -25,7 +25,6 @@
   <table class="table table-striped">
     <thead class="thead-dark">
       <tr>
-        <th scope="col">sr.no</th>
         <th scope="col">User</th>
         <th scope="col">Book</th>
         <th scope="col">Status</th>
@@ -35,17 +34,20 @@
     <tbody>
       {% for r in requests %}
       <tr>
-        <th scope="row">{{ loop.index }}</th>
         <td>{{ r.user.name }}</td>
         <td>{{ r.book.b_name }}</td>
-        <td class="text-capitalize">{{ r.status }}</td>
+        <td>{{ r.status }}</td>
         <td>
+          {% if r.status == 'pending' %}
             <form action="{{ url_for('approve_request', request_id=r.id) }}" method="POST" style="display:inline;">
-              <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Approve this request?')">Approve</button>
+              <button type="submit" class="btn btn-success btn-sm">Approve</button>
             </form>
             <form action="{{ url_for('reject_request', request_id=r.id) }}" method="POST" style="display:inline;">
-              <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this request?')">Reject</button>
+              <button type="submit" class="btn btn-danger btn-sm">Reject</button>
             </form>
+          {% else %}
+            <span class="badge badge-info text-capitalize">{{ r.status }}</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

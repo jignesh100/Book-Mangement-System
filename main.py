@@ -1,5 +1,6 @@
 import datetime
 from functools import wraps
+import json
 from os import name
 from tabnanny import check
 from urllib import response
@@ -31,15 +32,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'jigneshverulakar@gmail.com'
-app.config['MAIL_PASSWORD'] = 'ulxh bacz qjzr jnal'  # Use an app-specific password
+app.config['MAIL_USERNAME'] = '21dit100@charusat.edu.in'
+app.config['MAIL_PASSWORD'] = 'XXXX' 
 
 mail = Mail(app)
-
-
-
-
-
 
 
 
@@ -55,20 +51,6 @@ from sqlalchemy import event
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -195,7 +177,6 @@ def login():
             return render_template('sign_in.html', message="Invalid credentials!")
        
     return render_template('sign_in.html')
-
 
 
 import random
@@ -392,30 +373,41 @@ def signout(current_user: User):
 
 
 
-#TODO impelment the Status and Dowload Column according to permission
 @app.route('/dashboard', methods=['GET', 'POST'])
 @token_required
 def dashboard(current_user: User):
     keyword = ''
+    books = Books.query.all()
+   
+    book_data = []
+    for book in books:
+        print(book.b_id)
+        book_json = book.to_json()
+
+        approval = BookDownloadRequest.query.filter_by(user_id=current_user.id, book_id=book.b_id).first()
+        status = approval.status if approval else 'Not Requested'
+        book_data.append({
+            'book' : book_json,
+            'status': status,
+        })
+
     if request.method == 'POST':
-        keyword = request.form.get('search_keyword', '').strip()
-        books = (
-            Books.query
-            .filter(
-                (Books.b_name.ilike(f'%{keyword}%')) |
-                (Books.b_auth.ilike(f'%{keyword}%')) |
-                (Books.b_isbn.ilike(f'%{keyword}%'))
-            )
-            .all()
-        ) if keyword else Books.query.all()
-    else:
-        books = Books.query.all()
+        keyword = request.form.get('search_keyword', '').strip().lower()
+        if keyword:
+            book_data = [
+                entry for entry in book_data
+                if keyword in entry['book']['b_name'].lower() or
+                   keyword in entry['book']['b_auth'].lower() or
+                   keyword in entry['book']['b_isbn'].lower()
+            ]
+    
 
     return render_template(
         'dashboard.html',
         username=current_user.name,
         email=current_user.email,
         books=books,
+        book_data=book_data,
         keyword=keyword
     )
 
@@ -681,11 +673,6 @@ def ho():
 @app.route('/about')
 def about():
     return render_template('about.html')
-
-
-
-
-
 
 
 
